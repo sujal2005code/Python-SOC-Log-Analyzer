@@ -5,20 +5,19 @@ Responsible for generating and exporting security reports.
 """
 
 
-def build_report(total_events, failed_logins, alerts):
+def build_report(total_events, successful_logins, failed_logins, alerts):
     """
     Build the authentication security report.
 
     Args:
         total_events (int): Total authentication events.
+        successful_logins (int): Total successful login attempts.
         failed_logins (int): Total failed login attempts.
         alerts (list): Detected brute-force alerts.
 
     Returns:
         str: Formatted security report.
     """
-
-    successful_logins = total_events - failed_logins
 
     lines = [
         "========== SECURITY SUMMARY ==========",
@@ -49,32 +48,53 @@ def build_report(total_events, failed_logins, alerts):
         lines.append("")
         lines.append("======================================")
     else:
-        lines.extend(["", "No brute-force activity detected."])
+        lines.extend(
+            [
+                "",
+                "No brute-force activity detected.",
+            ]
+        )
 
     return "\n".join(lines)
 
 
-def generate_summary(total_events, failed_logins, alerts):
+def generate_summary(
+    total_events,
+    successful_logins,
+    failed_logins,
+    alerts,
+):
     """
     Display the authentication security report.
     """
 
-    report = build_report(total_events, failed_logins, alerts)
+    report = build_report(
+        total_events,
+        successful_logins,
+        failed_logins,
+        alerts,
+    )
+
     print(f"\n{report}")
 
 
-def save_report(total_events, failed_logins, alerts, output_file):
+def save_report(
+    total_events,
+    successful_logins,
+    failed_logins,
+    alerts,
+    output_file,
+):
     """
     Export the security report to a text file.
-
-    Args:
-        total_events (int): Total authentication events.
-        failed_logins (int): Total failed login attempts.
-        alerts (list): Detected brute-force alerts.
-        output_file: Destination file path.
     """
 
-    report = build_report(total_events, failed_logins, alerts)
+    report = build_report(
+        total_events,
+        successful_logins,
+        failed_logins,
+        alerts,
+    )
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
