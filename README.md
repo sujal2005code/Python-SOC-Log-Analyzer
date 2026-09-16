@@ -1,362 +1,576 @@
-<div align="center">
+# 🔐 Python SOC Log Analyzer
 
-#  Python SOC Log Analyzer
+A modular Python-based Security Operations Center (SOC) log analyzer
+that parses structured OpenSSH authentication logs, normalizes
+authentication events, detects repeated failed login activity, and
+generates security reports.
 
-### Detect • Analyze • Investigate • Report
+> **Current status:** Milestone 1 --- Real SSH Log Analysis ✅\
+> Future milestones are planned for multi-log support, expanded
+> detection rules, JSON output, testing, and a SOC dashboard.
 
-*A modular Security Operations Center (SOC) log analyzer built with Python.*
+------------------------------------------------------------------------
 
-![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
-![MIT License](https://img.shields.io/badge/License-MIT-green)
-![CI](https://img.shields.io/badge/CI-GitHub%20Actions-Passing-brightgreen?logo=githubactions)
-![Cybersecurity](https://img.shields.io/badge/Cybersecurity-SOC-red)
-![Status](https://img.shields.io/badge/Status-Active-success)
+## 🎯 Project Overview
 
----
+Security teams work with large volumes of authentication logs. Manually
+identifying repeated failed login attempts can be slow and error-prone.
 
-**Python • Cybersecurity • Threat Detection • Security Automation • GitHub Actions**
+This project automates the first stage of that workflow:
 
-</div>
-
----
-
-# Overview
-
-The **Python SOC Log Analyzer** is a modular cybersecurity application designed to simulate a Security Operations Center (SOC) workflow.
-
-It reads authentication log files, analyzes login activity, detects repeated failed login attempts, identifies potential brute-force attacks, generates security summaries, exports investigation reports, and validates detection logic using automated tests.
-
-The project demonstrates practical cybersecurity engineering, Python programming, software architecture, testing, and CI/CD practices.
-
----
-
-# 🚀 Features
-
-- ✅ Authentication Log Parsing
-- ✅ Failed Login Detection
-- ✅ Brute Force Detection
-- ✅ High-Risk Alert Generation
-- ✅ Security Report Export
-- ✅ Modular Architecture
-- ✅ Unit Testing
-- ✅ GitHub Actions CI/CD
-- ✅ Professional Documentation
-
----
-
-# 🏗️ System Architecture
-
-```mermaid
-flowchart LR
-
-A[Authentication Logs]
---> B[parser.py]
-
-B --> C[detector.py]
-
-C --> D[report.py]
-
-D --> E[Terminal Output]
-
-D --> F[Security Report]
+``` text
+Raw OpenSSH Logs
+       │
+       ▼
+┌──────────────────┐
+│   Log Parser     │
+│ parser.py        │
+└────────┬─────────┘
+         │
+         ▼
+┌────────────────────────────┐
+│ Normalized Authentication  │
+│ user / IP / status         │
+└────────────┬───────────────┘
+             │
+             ▼
+┌──────────────────┐
+│ Detection Engine │
+│ detector.py      │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Security Report  │
+│ report.py        │
+└──────────────────┘
 ```
 
----
+------------------------------------------------------------------------
 
-# Detection Workflow
+## ✨ Current Features
 
-```mermaid
+-   📄 Parse structured OpenSSH authentication logs
+-   🔎 Extract usernames and source IP addresses
+-   ✅ Detect successful SSH authentication
+-   ❌ Detect failed authentication
+-   🚨 Detect repeated failed login attempts
+-   ⚙️ Configure brute-force threshold from the CLI
+-   🖥️ Run analysis from the command line
+-   📝 Generate a human-readable security report
+-   💾 Save reports automatically
+-   🧩 Separate parsing, detection, reporting, and CLI responsibilities
+
+------------------------------------------------------------------------
+
+## 🏗️ Architecture
+
+``` mermaid
 flowchart TD
+    A[OpenSSH Structured CSV] --> B[main.py]
+    B --> C[parser.py]
+    C --> D[Normalized Events]
+    D --> E[detector.py]
+    E --> F[Failed Login Detection]
+    E --> G[Brute-Force Detection]
+    F --> H[report.py]
+    G --> H
+    H --> I[security_report.txt]
 
-A[CSV Authentication Logs]
-
-A --> B[Load Events]
-
-B --> C[Analyze Failed Logins]
-
-C --> D[Detect Brute Force]
-
-D --> E[Generate Security Report]
-
-E --> F[Export Report]
+    J[CLI Arguments] --> B
+    J --> K[Log File]
+    J --> L[Detection Threshold]
+    J --> M[Report Output]
 ```
 
----
+### Separation of Responsibilities
 
-# 📁 Project Structure
+  Component        Responsibility
+  ---------------- ----------------------------------------------
+  `main.py`        CLI, application flow, orchestration
+  `parser.py`      Read logs and normalize OpenSSH events
+  `detector.py`    Identify failed logins and repeated failures
+  `report.py`      Build and save security reports
+  `tests/`         Automated testing
+  `sample_logs/`   Example authentication datasets
+  `reports/`       Generated security reports
 
-```text
-python-soc-log-analyzer/
+------------------------------------------------------------------------
 
-│
-├── .github/
-│   └── workflows/
-│       └── python-tests.yml
-│
-├── reports/
-│   └── security_report.txt
-│
-├── sample_logs/
-│   └── authentication_logs.csv
-│
-├── src/
-│   ├── main.py
-│   ├── parser.py
-│   ├── detector.py
-│   └── report.py
-│
-├── tests/
-│   └── test_detector.py
-│
-├── README.md
-├── LICENSE
-└── .gitignore
+## 🔄 Processing Pipeline
+
+``` mermaid
+sequenceDiagram
+    participant U as User
+    participant M as main.py
+    participant P as parser.py
+    participant D as detector.py
+    participant R as report.py
+
+    U->>M: Provide log file + threshold
+    M->>P: Load log file
+    P->>P: Parse OpenSSH messages
+    P-->>M: Normalized events
+    M->>D: Analyze events
+    D-->>M: Failed logins + alerts
+    M->>R: Generate report
+    R-->>U: Display + save security report
 ```
 
----
+------------------------------------------------------------------------
 
-# ⚙️ Installation
+## 🧠 Event Normalization
 
-Clone the repository.
+Different raw SSH messages are converted into a common internal
+structure.
 
-```bash
-git clone https://github.com/ThePreacherMan/python-soc-log-analyzer.git
+### Failed authentication
+
+``` text
+Failed password for invalid user webmaster from 173.234.31.186
 ```
 
-Navigate into the project.
+becomes:
 
-```bash
-cd python-soc-log-analyzer
+``` json
+{
+  "user": "webmaster",
+  "ip_address": "173.234.31.186",
+  "status": "FAILED"
+}
 ```
 
-Run the application.
+### Successful authentication
 
-```bash
-python src/main.py
+``` text
+Accepted password for fztu from 119.137.62.142
 ```
 
-Run the automated tests.
+becomes:
 
-```bash
-python -m unittest discover -s tests -v
+``` json
+{
+  "user": "fztu",
+  "ip_address": "119.137.62.142",
+  "status": "SUCCESS"
+}
 ```
 
----
+This normalization keeps the detection logic independent from the
+original log message format.
 
-# 🖥️ Example Output
+------------------------------------------------------------------------
 
-```text
+## 🚨 Brute-Force Detection
+
+The current detection rule groups failed authentication attempts by:
+
+``` text
+username + source IP
+```
+
+A configurable threshold determines when an alert is generated.
+
+### Example
+
+With:
+
+``` text
+threshold = 5
+```
+
+    Attempts Result
+  ---------- ----------
+           1 No alert
+           4 No alert
+           5 🚨 Alert
+          20 🚨 Alert
+         276 🚨 Alert
+
+The threshold can be changed without modifying the source code.
+
+------------------------------------------------------------------------
+
+## 📊 Milestone 1 Results
+
+The analyzer was tested against the OpenSSH structured dataset included
+in `sample_logs/`.
+
+### Parsed Authentication Events
+
+``` mermaid
+pie title Authentication Event Distribution
+    "Failed" : 635
+    "Successful" : 1
+```
+
+### Security Alerts
+
+``` mermaid
+pie title Detection Result
+    "Brute-force alerts" : 13
+    "No alert" : 623
+```
+
+### Observed Results
+
+  Metric                         Result
+  -------------------- ----------------
+  Parsed events                 **636**
+  Successful logins               **1**
+  Failed logins                 **635**
+  Brute-force alerts             **13**
+  Default threshold      **5 attempts**
+
+One detected source/user combination contained **276 failed attempts**,
+demonstrating why automated repeated-failure detection is useful.
+
+> These values represent the current test run against the included
+> dataset and are not intended to represent a general real-world attack
+> rate.
+
+------------------------------------------------------------------------
+
+## 🖥️ CLI Usage
+
+### Run with the default threshold
+
+``` bash
+python src/main.py --log sample_logs/OpenSSH_2k.log_structured.csv
+```
+
+### Change the detection threshold
+
+``` bash
+python src/main.py --log sample_logs/OpenSSH_2k.log_structured.csv --threshold 10
+```
+
+### Specify a custom report path
+
+``` bash
+python src/main.py --log sample_logs/OpenSSH_2k.log_structured.csv --threshold 10 --output reports/custom_report.txt
+```
+
+------------------------------------------------------------------------
+
+## 📄 Example Report
+
+``` text
 ========== SECURITY SUMMARY ==========
-
-Total Events       : 15
-
-Successful Logins  : 5
-
-Failed Logins      : 10
-
-Security Alerts    : 1
-
+Total Events       : 636
+Successful Logins  : 1
+Failed Logins      : 635
+Security Alerts    : 13
 ======================================
 
 ========== HIGH-RISK ALERTS ==========
 
 Alert #1
-
-User               : admin
-
-IP Address         : 10.0.0.5
-
-Failed Attempts    : 5
-
+User               : root
+IP Address         : 112.95.230.3
+Failed Attempts    : 24
 Risk Level         : HIGH
-
-Reason             :
-
-5 failed login attempts detected for user 'admin' from 10.0.0.5.
 ```
 
----
+Reports are written to:
 
-# Detection Logic
+``` text
+reports/security_report.txt
+```
 
-The application currently detects:
+------------------------------------------------------------------------
 
-- Multiple failed login attempts
-- Potential brute-force attacks
-- High-risk authentication events
-- Suspicious user activity
+## 📁 Project Structure
 
-Future versions will include:
+``` text
+python-soc-log-analyzer/
+│
+├── .github/
+│   └── workflows/
+│       └── python-tests.yml
+│
+├── sample_logs/
+│   ├── authentication_logs.csv
+│   └── OpenSSH_2k.log_structured.csv
+│
+├── reports/
+│   └── security_report.txt
+│
+├── src/
+│   ├── detector.py
+│   ├── main.py
+│   ├── parser.py
+│   └── report.py
+│
+├── tests/
+│   └── test_detector.py
+│
+├── .gitignore
+├── README.md
+├── LICENSE
+├── SECURITY.md
+└── CHANGELOG.md
+```
 
-- Impossible Travel Detection
-- Login Time Analysis
-- IP Reputation Checks
-- Geolocation
-- Risk Scoring
-- Dashboard
-- REST API
+------------------------------------------------------------------------
 
----
+## 🛠️ Technologies Used
 
-# Automated Testing
+-   **Python**
+-   Python `csv`
+-   Python `re`
+-   Python `argparse`
+-   Python `pathlib`
+-   Git & GitHub
+-   GitHub Actions
+-   OpenSSH authentication logs
 
-The project uses Python's built-in **unittest** framework.
+------------------------------------------------------------------------
 
-Current tests include:
+## 🧪 Testing
 
-- Failed login detection
-- Brute-force detection
-- Threshold validation
+The project includes automated tests for the detection logic.
 
-All tests are executed automatically using **GitHub Actions** on every push to the repository.
+Run:
 
----
+``` bash
+pytest
+```
 
-# 📊 Project Metrics
+The project also uses GitHub Actions for automated test execution.
 
-| Metric | Value |
-|---------|------:|
-| Language | Python |
-| Architecture | Modular |
-| Detection Engine | Rule-Based |
-| Test Framework | unittest |
-| CI/CD | GitHub Actions |
-| Authentication Dataset | Synthetic |
-| License | MIT |
+------------------------------------------------------------------------
 
----
+## 🔐 Security Considerations
 
-# 📸 Screenshots
+This project is intended for defensive security analysis and learning.
 
-## Security Summary
+When using real logs:
 
-![Security Summary](screenshots/terminal-output.png)
+-   Do not commit passwords or secrets.
+-   Do not upload private authentication logs.
+-   Remove sensitive usernames or IP information when necessary.
+-   Keep credentials and API keys outside the repository.
+-   Review datasets before publishing them publicly.
 
----
+The included OpenSSH dataset is used as a sample security-analysis
+dataset.
 
-## GitHub Actions
+------------------------------------------------------------------------
 
-![GitHub Actions](screenshots/github-actions.png)
+## 🎓 What I Learned
 
----
+Building this project helped me understand several practical concepts
+beyond writing individual Python scripts.
 
-## Project Structure
+### 1. Log Parsing
 
-![Project Structure](screenshots/project-structure.png)
+I learned how raw security logs can be converted into structured data
+using:
 
-# 🛣️ Roadmap
+-   CSV parsing
+-   Regular expressions
+-   Pattern matching
+-   Field extraction
 
-## Version 1.0
+### 2. Event Normalization
 
-- Authentication Log Parsing
-- Failed Login Detection
-- Brute Force Detection
-- Security Report Export
-- Unit Testing
-- GitHub Actions
+Different SSH messages have different structures. I learned to convert
+them into a common event model:
 
----
+``` text
+user
+ip_address
+status
+```
 
-## Version 1.1
+This makes the detection layer easier to maintain.
 
-- CSV Export
-- JSON Export
-- Configurable Detection Thresholds
-- Rich Terminal Output
+### 3. Detection Logic
 
----
+I implemented detection for:
 
-## Version 2.0
+-   Failed authentication
+-   Successful authentication
+-   Repeated failed attempts
+-   Brute-force-style activity
 
-- SQLite Support
-- Interactive Dashboard
-- REST API
-- Docker Support
-- SIEM-style Event Viewer
-- User Risk Profiles
+I also learned how a configurable threshold changes detection
+sensitivity.
 
----
+### 4. Modular Software Design
 
-# 💼 Skills Demonstrated
+Instead of putting everything into one Python file, the project
+separates:
 
-- Python Programming
-- Cybersecurity
-- Security Operations Center (SOC)
-- Authentication Monitoring
-- Threat Detection
-- Incident Response
-- Secure Software Design
-- Modular Programming
-- Unit Testing
-- Git
-- GitHub
-- GitHub Actions (CI/CD)
+``` text
+Parsing
+   ↓
+Detection
+   ↓
+Reporting
+   ↓
+CLI orchestration
+```
 
----
+This makes individual components easier to understand, test, and extend.
 
-# 📚 Lessons Learned
+### 5. CLI Application Development
 
-This project strengthened my understanding of:
+I learned how to make a Python security tool configurable from the
+command line using `argparse`.
 
-- Python application architecture
-- Authentication log analysis
-- Security event detection
-- Brute-force identification
-- Modular software design
-- Automated testing
-- Continuous Integration
-- Professional GitHub workflows
+For example:
 
----
+``` bash
+--log
+--threshold
+--output
+```
 
-# 👨‍💻 About the Author
+### 6. Debugging
 
-## Ibeh Chigoziem
+I worked through issues involving:
 
-**ISC2 Certified in Cybersecurity (CC)**
+-   File paths
+-   CLI arguments
+-   parser assumptions
+-   function parameter changes
+-   integration between modules
+-   Git repository configuration
 
-Cybersecurity Analyst focused on:
+### 7. Git & GitHub
 
-- Security Operations (SOC)
-- Python Security Automation
-- Threat Detection
-- Cloud Security
-- Risk Management
+I practiced:
 
-### Connect with Me
+``` text
+git init
+git add
+git commit
+git remote
+git push
+```
 
-**GitHub**
+and learned how to manage changes without uploading unnecessary files
+such as virtual environments or caches.
 
-https://github.com/ThePreacherMan
+### 8. Security Mindset
 
-**LinkedIn**
+The project helped me think about logs from a SOC analyst perspective:
 
-https://www.linkedin.com/in/chigoziem-ibeh-seo-cybersecurity
+``` text
+What happened?
+      ↓
+Who was targeted?
+      ↓
+Which IP generated the activity?
+      ↓
+How frequently did it happen?
+      ↓
+Does it cross a detection threshold?
+      ↓
+Should an alert be generated?
+```
 
-**Portfolio**
+------------------------------------------------------------------------
 
-https://ibehchigoziem.com
+## 🚀 Future Roadmap
 
----
+### Milestone 2 --- Multi-Log Architecture
 
-# 🤝 Contributing
+-   Apache/web-server parser
+-   Generic authentication CSV parser
+-   Automatic log-type detection
+-   Common normalized event schema
+-   Separate parser modules
 
-Contributions, suggestions, and improvements are welcome.
+### Milestone 3 --- Expanded Detection Engine
 
-Feel free to fork the repository, create a feature branch, and submit a pull request.
+-   More authentication rules
+-   Suspicious HTTP activity
+-   IP-based behavioral detection
+-   Additional configurable detection rules
 
----
+### Milestone 4 --- Structured JSON Output
 
-# 📄 License
+Generate machine-readable reports:
 
-This project is licensed under the MIT License.
+``` text
+security_report.json
+```
 
----
+This will allow the output to be consumed by:
 
-<div align="center">
+``` text
+Dashboard
+   ↓
+API
+   ↓
+SIEM
+   ↓
+Other security tools
+```
 
-### ⭐ If you found this project useful, consider giving it a star.
+### Milestone 5 --- Testing & Code Quality
 
-It motivates future development and helps others discover the project.
+-   More parser tests
+-   CLI tests
+-   Edge-case tests
+-   Coverage
+-   CI improvements
 
-</div>
+### Milestone 6 --- SOC Dashboard
+
+``` mermaid
+flowchart LR
+    A[SSH Logs] --> P[Parser Layer]
+    B[Apache Logs] --> P
+    C[Other Logs] --> P
+
+    P --> N[Normalized Events]
+    N --> D[Detection Engine]
+    D --> J[JSON / Database]
+    J --> S[SOC Dashboard]
+    S --> A1[Alerts]
+    S --> A2[Analytics]
+    S --> A3[Investigation View]
+```
+
+------------------------------------------------------------------------
+
+## 💡 Key Takeaway
+
+This project started as a simple authentication-log analyzer and evolved
+into a modular security-analysis pipeline.
+
+The main engineering principle is:
+
+> **Parse raw security data → normalize events → apply detection rules →
+> produce actionable output.**
+
+The architecture is intentionally designed so that additional log
+sources and detection capabilities can be added later without rewriting
+the entire application.
+
+------------------------------------------------------------------------
+
+## 👤 Author
+
+**Sujal Maity**\
+B.Tech Computer Science & Engineering
+
+Focus areas:
+
+-   Cybersecurity
+-   SOC / Security Operations
+-   Cloud Security
+-   DevOps
+-   Python Automation
+
+------------------------------------------------------------------------
+
+## ⭐ Project Status
+
+**Milestone 1 --- Completed ✅**
+
+**Milestone 2--6 --- Planned 🚧**
